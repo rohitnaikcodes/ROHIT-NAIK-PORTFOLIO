@@ -1,25 +1,8 @@
-// Simple password protection (Not highly secure, but prevents casual access)
-const SECRET_PASSWORD = "rohit";
-
-function checkPassword() {
-    const input = document.getElementById('password-input').value;
-    if (input === SECRET_PASSWORD) {
-        document.getElementById('auth-overlay').style.display = 'none';
-        document.getElementById('main-content').style.display = 'block';
-        loadBlogs(); // Load blogs once authenticated
-    } else {
-        document.getElementById('error-msg').style.display = 'block';
-    }
-}
-
-// Allow pressing 'Enter' to submit password
-document.getElementById('password-input').addEventListener('keypress', function (e) {
-    if (e.key === 'Enter') {
-        checkPassword();
-    }
+// Blog Logic (Using LocalStorage as requested/default for static site)
+document.addEventListener('DOMContentLoaded', () => {
+    loadBlogs();
 });
 
-// Blog Logic (Using LocalStorage as requested/default for static site)
 const blogForm = document.getElementById('blog-form');
 const blogsList = document.getElementById('blogs-list');
 
