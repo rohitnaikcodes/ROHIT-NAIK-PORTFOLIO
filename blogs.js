@@ -39,16 +39,21 @@ blogForm.addEventListener('submit', async function (e) {
 
     let imageUrl = null;
 
-    try {
-        // Handle image upload if a file was selected
-        if (imageInput.files.length > 0) {
+    // Handle image upload if a file was selected
+    if (imageInput.files.length > 0) {
+        try {
             const file = imageInput.files[0];
             const storageRef = ref(storage, `blog_images/${timestamp}_${file.name}`);
             submitBtn.textContent = "Uploading Image...";
             const snapshot = await uploadBytes(storageRef, file);
             imageUrl = await getDownloadURL(snapshot.ref);
+        } catch (imgError) {
+            console.error("Image upload failed (Storage rules likely not set):", imgError);
+            alert("Warning: Your image failed to upload (Firebase Storage is likely not enabled or rules are strictly locked). However, your text will still be published!");
         }
+    }
 
+    try {
         submitBtn.textContent = "Saving Post...";
 
         await addDoc(collection(db, "blogs"), {
@@ -67,7 +72,7 @@ blogForm.addEventListener('submit', async function (e) {
         await loadBlogs();
     } catch (error) {
         console.error("Error adding document: ", error);
-        alert("Failed to post blog. Please ensure you have enabled Firebase Storage and set the security rules as described.");
+        alert("Failed to post blog. Please check your database connection.");
     } finally {
         submitBtn.textContent = "Post Blog";
         submitBtn.disabled = false;
