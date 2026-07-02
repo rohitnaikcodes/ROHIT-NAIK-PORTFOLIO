@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Admin - Secret Blogs</title>
+    
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-ZM1DF79Y7B"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-ZM1DF79Y7B');
+    </script>
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <style>
@@ -27,7 +37,9 @@
         <form class="blog-form" id="blog-form">
             <input type="text" id="blog-author" placeholder="Your Name" required>
             <input type="text" id="blog-title" placeholder="Blog Title" required>
-            <textarea id="blog-content" placeholder="Write your blog post here..." required></textarea>
+            <textarea id="blog-content" placeholder="Write your blog post here... (Supports Markdown for **bold**, *italics*, etc.)" required></textarea>
+            <label style="color: var(--secondary); font-size: 0.9rem; margin-bottom: -0.5rem;">Attach an image (optional):</label>
+            <input type="file" id="blog-image" accept="image/*" style="border: none; padding: 0;">
             <button type="submit" class="btn-submit">Post Blog</button>
         </form>
 
@@ -37,6 +49,8 @@
         </div>
     </div>
 
+    <!-- Markdown Parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script type="module" src="blogs.js"></script>
 </body>
 </html>

@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-storage.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDGUeZWD7AQaZhKVVeswPo_xrbprTzux2Y",
@@ -14,10 +15,12 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const storage = getStorage(app);
 
 const blogForm = document.getElementById('blog-form');
 const blogsList = document.getElementById('blogs-list');
 const submitBtn = document.querySelector('.btn-submit');
+const imageInput = document.getElementById('blog-image');
 
 document.addEventListener('DOMContentLoaded', () => {
     loadBlogs();
@@ -32,15 +35,29 @@ blogForm.addEventListener('submit', async function (e) {
     const title = document.getElementById('blog-title').value;
     const content = document.getElementById('blog-content').value;
     const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    const timestamp = Date.now(); // For ordering
+    const timestamp = Date.now();
+
+    let imageUrl = null;
 
     try {
+        // Handle image upload if a file was selected
+        if (imageInput.files.length > 0) {
+            const file = imageInput.files[0];
+            const storageRef = ref(storage, `blog_images/${timestamp}_${file.name}`);
+            submitBtn.textContent = "Uploading Image...";
+            const snapshot = await uploadBytes(storageRef, file);
+            imageUrl = await getDownloadURL(snapshot.ref);
+        }
+
+        submitBtn.textContent = "Saving Post...";
+
         await addDoc(collection(db, "blogs"), {
             author,
             title,
             content,
             date,
-            timestamp
+            timestamp,
+            imageUrl
         });
 
         // Clear form
@@ -50,7 +67,7 @@ blogForm.addEventListener('submit', async function (e) {
         await loadBlogs();
     } catch (error) {
         console.error("Error adding document: ", error);
-        alert("Failed to post blog. Make sure your Firestore rules allow writes!");
+        alert("Failed to post blog. Please ensure you have enabled Firebase Storage and set the security rules as described.");
     } finally {
         submitBtn.textContent = "Post Blog";
         submitBtn.disabled = false;
@@ -76,10 +93,24 @@ async function loadBlogs() {
             const blogDiv = document.createElement('div');
             blogDiv.className = 'blog-post';
 
+            // Use marked.js to parse markdown content
+            let parsedContent = blog.content;
+            if (typeof marked !== 'undefined') {
+                parsedContent = marked.parse(blog.content);
+            } else {
+                parsedContent = escapeHTML(blog.content).replace(/\n/g, '<br>');
+            }
+
+            let imageHtml = '';
+            if (blog.imageUrl) {
+                imageHtml = `<img src="${escapeHTML(blog.imageUrl)}" alt="Blog Image" style="max-width: 100%; border-radius: 8px; margin-top: 1rem; margin-bottom: 1rem;">`;
+            }
+
             blogDiv.innerHTML = `
                 <h3 class="blog-title">${escapeHTML(blog.title)}</h3>
                 <div class="blog-meta">Posted by <strong>${escapeHTML(blog.author)}</strong> on ${escapeHTML(blog.date)}</div>
-                <div class="blog-content">${escapeHTML(blog.content)}</div>
+                ${imageHtml}
+                <div class="blog-content" style="font-family: inherit;">${parsedContent}</div>
                 <button class="delete-btn" data-id="${docSnap.id}" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;">Delete</button>
             `;
             
