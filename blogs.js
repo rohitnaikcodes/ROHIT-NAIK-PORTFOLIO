@@ -1,79 +1,126 @@
-// Blog Logic (Using LocalStorage as requested/default for static site)
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy } from "https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDGUeZWD7AQaZhKVVeswPo_xrbprTzux2Y",
+  authDomain: "personal-site-e93cf.firebaseapp.com",
+  projectId: "personal-site-e93cf",
+  storageBucket: "personal-site-e93cf.firebasestorage.app",
+  messagingSenderId: "905806665990",
+  appId: "1:905806665990:web:745f3af6a5de388e0d2687",
+  measurementId: "G-ZM1DF79Y7B"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const blogForm = document.getElementById('blog-form');
+const blogsList = document.getElementById('blogs-list');
+const submitBtn = document.querySelector('.btn-submit');
+
 document.addEventListener('DOMContentLoaded', () => {
     loadBlogs();
 });
 
-const blogForm = document.getElementById('blog-form');
-const blogsList = document.getElementById('blogs-list');
-
-blogForm.addEventListener('submit', function (e) {
+blogForm.addEventListener('submit', async function (e) {
     e.preventDefault();
+    submitBtn.textContent = "Posting...";
+    submitBtn.disabled = true;
 
     const author = document.getElementById('blog-author').value;
     const title = document.getElementById('blog-title').value;
     const content = document.getElementById('blog-content').value;
     const date = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const timestamp = Date.now(); // For ordering
 
-    const newBlog = { id: Date.now(), author, title, content, date };
+    try {
+        await addDoc(collection(db, "blogs"), {
+            author,
+            title,
+            content,
+            date,
+            timestamp
+        });
 
-    // Get existing blogs from local storage
-    let blogs = JSON.parse(localStorage.getItem('secret_blogs')) || [];
-    
-    // Add new blog to the top
-    blogs.unshift(newBlog);
-    
-    // Save back to local storage
-    localStorage.setItem('secret_blogs', JSON.stringify(blogs));
-
-    // Clear form
-    blogForm.reset();
-
-    // Reload blogs to show the new one
-    loadBlogs();
+        // Clear form
+        blogForm.reset();
+        
+        // Reload blogs
+        await loadBlogs();
+    } catch (error) {
+        console.error("Error adding document: ", error);
+        alert("Failed to post blog. Make sure your Firestore rules allow writes!");
+    } finally {
+        submitBtn.textContent = "Post Blog";
+        submitBtn.disabled = false;
+    }
 });
 
-function loadBlogs() {
-    let blogs = JSON.parse(localStorage.getItem('secret_blogs')) || [];
-    blogsList.innerHTML = '';
-
-    if (blogs.length === 0) {
-        blogsList.innerHTML = '<p style="color: var(--secondary);">No blogs posted yet.</p>';
-        return;
-    }
-
-    blogs.forEach(blog => {
-        const blogDiv = document.createElement('div');
-        blogDiv.className = 'blog-post';
-
-        blogDiv.innerHTML = `
-            <h3 class="blog-title">${escapeHTML(blog.title)}</h3>
-            <div class="blog-meta">Posted by <strong>${escapeHTML(blog.author)}</strong> on ${blog.date}</div>
-            <div class="blog-content">${escapeHTML(blog.content)}</div>
-            <button onclick="deleteBlog(${blog.id})" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;">Delete</button>
-        `;
+async function loadBlogs() {
+    blogsList.innerHTML = '<p style="color: var(--secondary);">Loading blogs...</p>';
+    
+    try {
+        const q = query(collection(db, "blogs"), orderBy("timestamp", "desc"));
+        const querySnapshot = await getDocs(q);
         
-        blogsList.appendChild(blogDiv);
-    });
+        blogsList.innerHTML = '';
+        
+        if (querySnapshot.empty) {
+            blogsList.innerHTML = '<p style="color: var(--secondary);">No blogs posted yet.</p>';
+            return;
+        }
+
+        querySnapshot.forEach((docSnap) => {
+            const blog = docSnap.data();
+            const blogDiv = document.createElement('div');
+            blogDiv.className = 'blog-post';
+
+            blogDiv.innerHTML = `
+                <h3 class="blog-title">${escapeHTML(blog.title)}</h3>
+                <div class="blog-meta">Posted by <strong>${escapeHTML(blog.author)}</strong> on ${escapeHTML(blog.date)}</div>
+                <div class="blog-content">${escapeHTML(blog.content)}</div>
+                <button class="delete-btn" data-id="${docSnap.id}" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;">Delete</button>
+            `;
+            
+            blogsList.appendChild(blogDiv);
+        });
+
+        // Add event listeners to delete buttons
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const id = e.target.getAttribute('data-id');
+                await deleteBlog(id);
+            });
+        });
+
+    } catch (error) {
+        console.error("Error loading blogs: ", error);
+        blogsList.innerHTML = '<p style="color: #ef4444;">Failed to load blogs. Check database connection.</p>';
+    }
 }
 
-function deleteBlog(id) {
+async function deleteBlog(id) {
     if (confirm('Are you sure you want to delete this blog post?')) {
-        let blogs = JSON.parse(localStorage.getItem('secret_blogs')) || [];
-        blogs = blogs.filter(b => b.id !== id);
-        localStorage.setItem('secret_blogs', JSON.stringify(blogs));
-        loadBlogs();
+        try {
+            await deleteDoc(doc(db, "blogs", id));
+            await loadBlogs();
+        } catch (error) {
+            console.error("Error deleting document: ", error);
+            alert("Failed to delete blog.");
+        }
     }
 }
 
 // Helper function to prevent XSS (Cross-Site Scripting)
 function escapeHTML(str) {
-    return str.replace(/[&<>'"]/g, 
+    return (str || "").toString().replace(/[&<>'"]/g, 
         tag => ({
             '&': '&amp;',
             '<': '&lt;',
             '>': '&gt;',
             "'": '&#39;',
             '"': '&quot;'
-        }[tag])
+        }[tag] || tag)
     );
 }

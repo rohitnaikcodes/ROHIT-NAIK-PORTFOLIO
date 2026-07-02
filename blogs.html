@@ -23,7 +23,6 @@
 <body>
     <div id="main-content" class="blog-container">
         <h1 style="color: var(--primary); margin-bottom: 2rem;">Secret Blog Submissions</h1>
-        <p style="margin-bottom: 2rem; color: var(--secondary);">Note: Since this is a static site without a backend, blogs submitted here are temporarily saved to your browser's local storage. This means only you can see what you post here, unless a database (like Firebase) is integrated later.</p>
         
         <form class="blog-form" id="blog-form">
             <input type="text" id="blog-author" placeholder="Your Name" required>
@@ -38,6 +37,6 @@
         </div>
     </div>
 
-    <script src="blogs.js"></script>
+    <script type="module" src="blogs.js"></script>
 </body>
 </html>
