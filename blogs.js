@@ -116,19 +116,12 @@ async function loadBlogs() {
                 <div class="blog-meta">Posted by <strong>${escapeHTML(blog.author)}</strong> on ${escapeHTML(blog.date)}</div>
                 ${imageHtml}
                 <div class="blog-content" style="font-family: inherit;">${parsedContent}</div>
-                <button class="delete-btn" data-id="${docSnap.id}" style="margin-top: 1rem; padding: 0.5rem 1rem; background: #ef4444; color: white; border: none; border-radius: 4px; cursor: pointer;">Delete</button>
             `;
             
             blogsList.appendChild(blogDiv);
         });
 
-        // Add event listeners to delete buttons
-        document.querySelectorAll('.delete-btn').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const id = e.target.getAttribute('data-id');
-                await deleteBlog(id);
-            });
-        });
+
 
     } catch (error) {
         console.error("Error loading blogs: ", error);
