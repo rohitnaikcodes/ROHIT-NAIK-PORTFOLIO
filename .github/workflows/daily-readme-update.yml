@@ -1,0 +1,40 @@
+name: Daily README Update
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Update README timestamp
+        run: |
+          python3 -c "
+          import re, datetime
+          current_date = datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d %H:%M UTC')
+          with open('README.md', 'r') as f:
+              content = f.read()
+          pattern = r'<!-- LAST_UPDATED_START -->.*?<!-- LAST_UPDATED_END -->'
+          replacement = f'<!-- LAST_UPDATED_START -->\n*Last updated: {current_date}*\n<!-- LAST_UPDATED_END -->'
+          if re.search(pattern, content, flags=re.DOTALL):
+              new_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
+          else:
+              new_content = content + f'\n\n<!-- LAST_UPDATED_START -->\n*Last updated: {current_date}*\n<!-- LAST_UPDATED_END -->\n'
+          with open('README.md', 'w') as f:
+              f.write(new_content)
+          "
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add README.md
+          git diff --quiet && git diff --staged --quiet || (git commit -m "docs: auto update README timestamp [skip ci]" && git push)
