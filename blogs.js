@@ -138,8 +138,13 @@ function renderBlogs(blogs) {
 
         // Parse content with marked.js
         let parsedContent = blog.content;
-        if (typeof marked !== 'undefined') {
-            parsedContent = marked.parse(blog.content);
+        if (typeof marked !== 'undefined' && typeof marked.parse === 'function') {
+            try {
+                parsedContent = marked.parse(blog.content);
+            } catch (err) {
+                console.error("Markdown parsing failed:", err);
+                parsedContent = escapeHTML(blog.content).replace(/\n/g, '<br>');
+            }
         } else {
             parsedContent = escapeHTML(blog.content).replace(/\n/g, '<br>');
         }
